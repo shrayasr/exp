@@ -24,7 +24,7 @@
   <div class="container">
     <div id="app" class="mt-5" v-cloak>
 
-      <div class="row pb-2">
+      <div class="row mb-2">
         <div class="col-6">
           <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
@@ -71,52 +71,78 @@
         </div>
       </div>
 
-
-
-      <hr/>
       <div v-if="activeSheet !== null">
-        <h2>{{ activeSheet.name }} ({{ activeSheet.duration }})
-          <a href="#" @click="dismissActiveSheet">x</a>
-        </h2>
-        <h3>Grand: {{ grandTotal }}</h3>
         <hr/>
-
-        <div class="dropdown">
-          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
-            aria-expanded="false">
-            Day
-          </button>
-          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <a class="dropdown-item" href="#" v-for="(_, index) in activeSheet.expenses" @click="setActiveDay(index)">
-              {{ index + 1 }}
-            </a>
+        <div class="row">
+          <div class="col-6">
+            <h2 class="d-inline">{{ activeSheet.name }}</h2>
+          </div>
+          <div class="col-6">
+            <h3 class="float-right">Total: {{ grandTotal }}</h3>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-6">
+            <h4 class="text-muted">{{ activeSheet.duration }} day(s)</h4>
+          </div>
+          <div class="col-6">
+            <div class="float-right">
+              <a href="#" class="btn btn-sm btn-outline-secondary">Edit</a>
+              <a href="#" @click="dismissActiveSheet" class="btn btn-sm btn-outline-secondary">Dismiss</a>
+            </div>
           </div>
         </div>
 
-        <h3>Day total: {{ dayWiseTotal }}</h3>
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover table-sm">
-            <thead class="thead-light">
-              <tr>
-                <th>When</th>
-                <th>Why</th>
-                <th>Amount</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(expense, index) in activeExpenses">
-                <td>{{ expense.when }}</td>
-                <td>{{ expense.why }}</td>
-                <td>{{ expense.amount }}</td>
-                <td>
-                  <a class="btn btn-secondary btn-sm" href="#" @click="editExpense(index, expense)">edit</a>
-                  <a class="btn btn-light btn-sm" href="#" @click="removeExpense(index)">remove</a>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <hr/>
+
+        <div class="row mb-2">
+          <div class="col-6">
+            <div class="dropdown">
+              <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">
+                <span v-if="activeExpensePage > 0">Day {{ activeExpensePage }}</span>
+                <span v-else>Select a day</span>
+              </button>
+              <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                <a class="dropdown-item" href="#" v-for="(_, index) in activeSheet.expenses" @click="setActiveDay(index)">
+                  {{ index + 1 }}
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <h3 class="float-right">Total: {{ dayWiseTotal }}</h3>
+          </div>
         </div>
+
+        <div class="row">
+          <div class="col-12">
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover table-sm">
+                <thead class="thead-light">
+                  <tr>
+                    <th>When</th>
+                    <th>Why</th>
+                    <th>Amount</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(expense, index) in activeExpenses">
+                    <td>{{ expense.when }}</td>
+                    <td>{{ expense.why }}</td>
+                    <td>{{ expense.amount }}</td>
+                    <td>
+                      <a class="btn btn-secondary btn-sm" href="#" @click="editExpense(index, expense)">edit</a>
+                      <a class="btn btn-light btn-sm" href="#" @click="removeExpense(index)">remove</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
 
         <div v-if="activeExpenses !== null">
           <input type="text" placeholder="Why" v-model.trim="expenseWhy" />
@@ -164,6 +190,9 @@
 
             return grand;
           }
+        },
+        activeExpensePage() {
+          return this.activeExpenseIndex + 1;
         }
       },
       data: {
@@ -172,6 +201,7 @@
         newSheetDuration: 1,
         activeSheet: null,
         activeExpenses: null,
+        activeExpenseIndex: -1,
         expenseAmt: 0.0,
         expenseWhy: "",
         inEditMode: false,
@@ -197,6 +227,7 @@
             this.sheets = state.sheets;
             this.activeSheet = state.activeSheet;
             this.activeExpenses = state.activeExpenses;
+            this.activeExpenseIndex = state.activeExpenseIndex;
           }
         },
 
@@ -237,6 +268,7 @@
           this.activeExpenses = null;
           this.inEditMode = false;
           this.editingExpenseIndex = -1;
+          this.activeExpenseIndex = -1;
           this.expenseWhy = "";
           this.expenseAmt = 0.0;
         },
@@ -244,11 +276,13 @@
         setActiveDay(index) {
           this.dismissActiveDay();
           this.activeExpenses = this.activeSheet.expenses[index];
+          this.activeExpenseIndex = index;
         },
 
         dismissActiveDay() {
           this.inEditMode = false;
           this.editingExpenseIndex = -1;
+          this.activeExpenseIndex = -1;
           this.expenseWhy = "";
           this.expenseAmt = 0.0;
         },
