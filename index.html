@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    [v-cloak] {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" v-cloak>
+    <h1>Expenses</h1>
+    <hr/>
+    <h2>Sheets</h2>
+    <ul>
+      <li v-for="sheet in sheets">
+        <a href="#" @click="selectSheet(sheet)">{{ sheet.name }} - {{ sheet.duration }}</a>
+      </li>
+    </ul>
+    <input placeholder="name" v-model.trim="newSheetName" type="text" />
+    <input placeholder="days" v-model.number="newSheetDuration" type="number" />
+    <button type="button" @click="addSheet">Add</button>
+    <hr/>
+    <div v-if="activeSheet !== null">
+      <h2>{{ activeSheet.name }} ({{ activeSheet.duration }})
+        <a href="#" @click="dismissActiveSheet">x</a>
+      </h2>
+      <h3>Grand: {{ grandTotal }}</h3>
+      <hr/>
+      <div>
+        Day:
+        <a href="#" v-for="(_, index) in activeSheet.expenses" @click="setActiveDay(index)">
+          {{ index + 1 }}
+        </a>
+      </div>
+      <h3>Day total: {{ dayWiseTotal }}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Why</th>
+            <th>Amount</th>
+            <th></th>
+          </tr>
+          <tr v-for="(expense, index) in activeExpenses">
+            <td>{{ expense.when }}</td>
+            <td>{{ expense.why }}</td>
+            <td>{{ expense.amount }}</td>
+            <td>
+              <a href="#" @click="editExpense(index, expense)">edit</a> |
+              <a href="#" @click="removeExpense(index)">remove</a>
+            </td>
+          </tr>
+        </thead>
+      </table>
+      <div v-if="activeExpenses !== null">
+        <input type="text" placeholder="Why" v-model.trim="expenseWhy" />
+        <input type="text" placeholder="Amount" v-model.number="expenseAmt" />
+        <button type="button" @click="submitExpense">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.4/lodash.min.js"></script>
+
+  <script>
+    var app = new Vue({
+      el: "#app",
+      computed: {
+        dayWiseTotal() {
+          if (this.activeExpenses) {
+            return this.activeExpenses.reduce((prev, curr) => prev + curr.amount, 0.0);
+          }
+          else {
+            return null;
+          }
+        },
+        grandTotal() {
+          if (this.activeSheet) {
+
+            var grand = 0.0;
+            this.activeSheet.expenses.forEach(dayWiseExpenses => {
+              var dayTotal = dayWiseExpenses.reduce((prev, curr) => prev + curr.amount, 0.0);
+              grand = grand + dayTotal;
+            });
+
+            return grand;
+          }
+        }
+      },
+      data: {
+        sheets: [],
+        newSheetName: "",
+        newSheetDuration: 1,
+        activeSheet: null,
+        activeExpenses: null,
+        expenseAmt: 0.0,
+        expenseWhy: "",
+        inEditMode: false,
+        editingExpenseIndex: -1
+      },
+      mounted() {
+        this.depersist();
+
+        setInterval(() => {
+          console.log("saving");
+          this.persist();
+        }, 5000);
+      },
+      methods: {
+
+        persist() {
+          localStorage.setItem("state", JSON.stringify(this.$data));
+        },
+
+        depersist() {
+          var state = JSON.parse(localStorage.getItem("state"));
+          if (state) {
+            this.sheets = state.sheets;
+            this.activeSheet = state.activeSheet;
+            this.activeExpenses = state.activeExpenses;
+          }
+        },
+
+        addSheet() {
+
+          if (this.sheets.map((s) => s.name).indexOf(this.newSheetName) !== -1) {
+            alert("This sheet already exists, can't add");
+            return;
+          }
+
+          var expenses = [];
+          for (var i = 0; i < this.newSheetDuration; i++) {
+            expenses.push([]);
+          }
+
+          this.sheets.push({
+            name: this.newSheetName,
+            duration: this.newSheetDuration,
+            expenses: expenses
+          });
+
+          this.newSheetName = "";
+          this.newSheetDuration = 1;
+
+          this.persist();
+        },
+
+        selectSheet(sheet) {
+
+          this.dismissActiveSheet();
+
+          this.activeSheet = sheet;
+          this.activeExpenses = null;
+        },
+
+        dismissActiveSheet() {
+          this.activeSheet = null;
+          this.activeExpenses = null;
+          this.inEditMode = false;
+          this.editingExpenseIndex = -1;
+          this.expenseWhy = "";
+          this.expenseAmt = 0.0;
+        },
+
+        setActiveDay(index) {
+          this.dismissActiveDay();
+          this.activeExpenses = this.activeSheet.expenses[index];
+        },
+
+        dismissActiveDay() {
+          this.inEditMode = false;
+          this.editingExpenseIndex = -1;
+          this.expenseWhy = "";
+          this.expenseAmt = 0.0;
+        },
+
+        submitExpense() {
+          if (this.expenseWhy == "" || this.expenseAmt <= 0.0) {
+            alert("Can't add/edit empty expense");
+            return;
+          }
+
+          if (this.inEditMode) {
+            var expense = this.activeExpenses[this.editingExpenseIndex];
+            expense.why = this.expenseWhy;
+            expense.amount = this.expenseAmt;
+
+            this.activeExpenses.splice(this.editingExpenseIndex, 1, expense);
+          }
+          else {
+            this.activeExpenses.push({
+              when: Date.now(),
+              why: this.expenseWhy,
+              amount: this.expenseAmt
+            });
+          }
+
+          this.expenseAmt = 0.0;
+          this.expenseWhy = "";
+
+          this.inEditMode = false;
+          this.editingExpenseIndex = -1;
+
+          this.persist();
+        },
+
+        removeExpense(index) {
+          this.activeExpenses.splice(index, 1);
+          this.persist();
+        },
+
+        editExpense(index, expense) {
+          var expenseClone = _.cloneDeep(expense);
+
+          this.expenseWhy = expenseClone.why;
+          this.expenseAmt = expenseClone.amount;
+
+          this.inEditMode = true;
+          this.editingExpenseIndex = index;
+        }
+
+      }
+    });
+  </script>
+
+</body>
+
+</html>
