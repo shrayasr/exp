@@ -24,7 +24,7 @@
   <div class="container">
     <div id="app" v-cloak>
 
-      <h1 class="display-4 mb-3">$ Exp</h1>
+      <h1 class="display-4 mb-3 mt-3">$ Exp</h1>
 
       <div class="row mb-2">
         <div class="col-6">
@@ -117,13 +117,13 @@
                   <tr v-if="activeExpenses.length === 0">
                     <td class="text-center" colspan="4">No expenses, yet ;)</td>
                   </tr>
-                  <tr v-else v-for="(expense, index) in activeExpenses">
+                  <tr v-else v-for="expense in activeExpenses">
                     <td>{{ expense.timestamp }}</td>
                     <td>{{ expense.why }}</td>
                     <td>{{ expense.amount }}</td>
                     <td>
-                      <a class="btn btn-secondary btn-sm" href="#" @click="editExpense(index, expense)">edit</a>
-                      <a class="btn btn-light btn-sm" href="#" @click="removeExpense(index)">remove</a>
+                      <a class="btn btn-secondary btn-sm" href="#" @click="editExpense(expense)">edit</a>
+                      <a class="btn btn-light btn-sm" href="#" @click="removeExpense(expense)">remove</a>
                     </td>
                   </tr>
                 </tbody>
@@ -238,19 +238,22 @@
                 day: "2018-01-01",
                 timestamp: "2018-01-01T10:00:00",
                 why: "Rent",
-                amount: 20000
+                amount: 20000,
+                idx: 0
               },
               {
                 day: "2018-01-01",
                 timestamp: "2018-01-01T14:00:00",
                 why: "Foo",
-                amount: 5000
+                amount: 5000,
+                idx: 1
               },
               {
                 day: "2018-01-02",
                 timestamp: "2018-01-02T14:00:00",
                 why: "bar",
-                amount: 6000
+                amount: 6000,
+                idx: 2
               }
             ]
           }
@@ -285,8 +288,6 @@
           if (state) {
             this.sheets = state.sheets;
             this.activeSheet = state.activeSheet;
-            this.activeExpenses = state.activeExpenses;
-            this.activeExpenseIndex = state.activeExpenseIndex;
           }
         },
 
@@ -337,11 +338,13 @@
             this.activeSheet.expenses.splice(this.editingExpenseIndex, 1, expense);
           }
           else {
+            var nextIdx = this.activeSheet.expenses.length;
             this.activeSheet.expenses.push({
               day: this.activeDay,
               timestamp: moment().format(),
               why: this.expenseWhy,
-              amount: this.expenseAmt
+              amount: this.expenseAmt,
+              idx: nextIdx
             });
           }
 
@@ -354,19 +357,19 @@
           this.persist();
         },
 
-        removeExpense(index) {
-          this.activeSheet.expenses.splice(index, 1);
+        removeExpense(expense) {
+          this.activeSheet.expenses.splice(expense.idx, 1);
           this.persist();
         },
 
-        editExpense(index, expense) {
+        editExpense(expense) {
           var expenseClone = _.cloneDeep(expense);
 
           this.expenseWhy = expenseClone.why;
           this.expenseAmt = expenseClone.amount;
 
           this.inEditMode = true;
-          this.editingExpenseIndex = index;
+          this.editingExpenseIndex = expenseClone.idx;
         },
 
         setActiveDayToToday() {
