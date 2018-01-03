@@ -35,9 +35,7 @@
               <span v-else>Select a sheet</span>
             </button>
             <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-              <a class="dropdown-item" v-for="sheet in sheets" href="#" @click="selectSheet(sheet)">{{ sheet.name }}
-                <span class="badge badge-dark">{{ sheet.duration }} day(s)</span>
-              </a>
+              <a class="dropdown-item" v-for="sheet in sheets" href="#" @click="selectSheet(sheet)">{{ sheet.name }}</a>
             </div>
           </div>
         </div>
@@ -54,12 +52,6 @@
                 <div class="form-group">
                   <label for="">Sheet Name</label>
                   <input class="form-control form-control-sm" placeholder="name" v-model.trim="newSheetName" type="text" />
-                </div>
-              </div>
-              <div class="col-12 col-md-2">
-                <div class="form-group">
-                  <label for="">Duration</label>
-                  <input class="form-control form-control-sm" placeholder="days" v-model.number="newSheetDuration" type="number" />
                 </div>
               </div>
             </div>
@@ -85,7 +77,7 @@
         </div>
         <div class="row">
           <div class="col-6">
-            <h4 class="text-muted">{{ activeSheet.duration }} day(s)</h4>
+            <h4 class="text-muted">{{ sheetDuration }} day(s)</h4>
           </div>
           <div class="col-6">
             <div class="float-right">
@@ -98,21 +90,10 @@
         <hr/>
 
         <div class="row mb-2">
-          <div class="col-6">
-            <div class="dropdown">
-              <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
-                aria-expanded="false">
-                <span v-if="activeExpensePage > 0">Day {{ activeExpensePage }}</span>
-                <span v-else>Select a day</span>
-              </button>
-              <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                <a class="dropdown-item" href="#" v-for="(_, index) in activeSheet.expenses" @click="setActiveDay(index)">
-                  {{ index + 1 }}
-                </a>
-              </div>
-            </div>
+          <div class="col-3">
+            <input v-model="activeDay" type="date" class="form-control">
           </div>
-          <div class="col-6">
+          <div class="col-9">
             <h3 class="float-right">Total: {{ dayWiseTotal }}</h3>
           </div>
         </div>
@@ -131,7 +112,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="(expense, index) in activeExpenses">
-                    <td>{{ expense.when }}</td>
+                    <td>{{ expense.timestamp }}</td>
                     <td>{{ expense.why }}</td>
                     <td>{{ expense.amount }}</td>
                     <td>
@@ -190,6 +171,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/vue"></script>
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.4/lodash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.20.1/moment.min.js"></script>
 
   <!-- Optional JavaScript -->
   <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -214,47 +196,80 @@
         },
         grandTotal() {
           if (this.activeSheet) {
-
-            var grand = 0.0;
-            this.activeSheet.expenses.forEach(dayWiseExpenses => {
-              var dayTotal = dayWiseExpenses.reduce((prev, curr) => prev + curr.amount, 0.0);
-              grand = grand + dayTotal;
-            });
-
-            return grand;
+            return this.activeSheet.expenses.reduce((prev, curr) => prev + curr.amount, 0.0);
+          }
+          else {
+            return 0.0;
           }
         },
-        activeExpensePage() {
-          return this.activeExpenseIndex + 1;
+        sheetDuration() {
+          if (this.activeSheet) {
+            return Object.keys(_.groupBy(this.activeSheet.expenses, (e) => e.day)).length;
+          }
+          else {
+            return null;
+          }
+        },
+        activeExpenses() {
+          if (this.activeSheet) {
+            return this.activeSheet.expenses.filter((a) => a.day == this.activeDay);
+          } else {
+            return null;
+          }
         }
       },
       data: {
-        sheets: [],
+        sheets: [
+          {
+            name: "Kodai",
+            expenses: [
+              {
+                day: "2018-01-01",
+                timestamp: "2018-01-01T10:00:00",
+                why: "Rent",
+                amount: 20000
+              },
+              {
+                day: "2018-01-01",
+                timestamp: "2018-01-01T14:00:00",
+                why: "Foo",
+                amount: 5000
+              },
+              {
+                day: "2018-01-02",
+                timestamp: "2018-01-02T14:00:00",
+                why: "bar",
+                amount: 6000
+              }
+            ]
+          }
+        ],
+        //sheets: [],
         newSheetName: "",
-        newSheetDuration: 1,
         activeSheet: null,
-        activeExpenses: null,
-        activeExpenseIndex: -1,
         expenseAmt: 0.0,
         expenseWhy: "",
         inEditMode: false,
+        activeDay: null,
         editingExpenseIndex: -1
       },
       mounted() {
         this.depersist();
 
         setInterval(() => {
-          console.log("saving");
           this.persist();
         }, 5000);
       },
       methods: {
 
         persist() {
+          return;
           localStorage.setItem("state", JSON.stringify(this.$data));
         },
 
         depersist() {
+          return;
+          console.log("saving");
           var state = JSON.parse(localStorage.getItem("state"));
           if (state) {
             this.sheets = state.sheets;
@@ -271,15 +286,9 @@
             return;
           }
 
-          var expenses = [];
-          for (var i = 0; i < this.newSheetDuration; i++) {
-            expenses.push([]);
-          }
-
           this.sheets.push({
             name: this.newSheetName,
-            duration: this.newSheetDuration,
-            expenses: expenses
+            expenses: []
           });
 
           this.newSheetName = "";
@@ -289,35 +298,18 @@
         },
 
         selectSheet(sheet) {
-
           this.dismissActiveSheet();
-
           this.activeSheet = sheet;
-          this.activeExpenses = null;
+          this.activeDay = moment().format("YYYY-MM-DD");
         },
 
         dismissActiveSheet() {
           this.activeSheet = null;
-          this.activeExpenses = null;
+          this.activeDay = null;
           this.inEditMode = false;
-          this.editingExpenseIndex = -1;
-          this.activeExpenseIndex = -1;
           this.expenseWhy = "";
           this.expenseAmt = 0.0;
-        },
-
-        setActiveDay(index) {
-          this.dismissActiveDay();
-          this.activeExpenses = this.activeSheet.expenses[index];
-          this.activeExpenseIndex = index;
-        },
-
-        dismissActiveDay() {
-          this.inEditMode = false;
           this.editingExpenseIndex = -1;
-          this.activeExpenseIndex = -1;
-          this.expenseWhy = "";
-          this.expenseAmt = 0.0;
         },
 
         submitExpense() {
@@ -327,15 +319,16 @@
           }
 
           if (this.inEditMode) {
-            var expense = this.activeExpenses[this.editingExpenseIndex];
+            var expense = this.activeSheet.expenses[this.editingExpenseIndex];
             expense.why = this.expenseWhy;
             expense.amount = this.expenseAmt;
 
-            this.activeExpenses.splice(this.editingExpenseIndex, 1, expense);
+            this.activeSheet.expenses.splice(this.editingExpenseIndex, 1, expense);
           }
           else {
-            this.activeExpenses.push({
-              when: Date.now(),
+            this.activeSheet.expenses.push({
+              day: this.activeDay,
+              timestamp: moment().format(),
               why: this.expenseWhy,
               amount: this.expenseAmt
             });
@@ -351,7 +344,7 @@
         },
 
         removeExpense(index) {
-          this.activeExpenses.splice(index, 1);
+          this.activeSheet.expenses.splice(index, 1);
           this.persist();
         },
 
