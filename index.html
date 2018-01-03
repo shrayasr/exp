@@ -90,10 +90,13 @@
         <hr/>
 
         <div class="row mb-2">
-          <div class="col-3">
+          <div class="col-6 col-md-3">
             <input v-model="activeDay" type="date" class="form-control">
           </div>
-          <div class="col-9">
+          <div class="d-none d-md-block col-md-2">
+            <a @click="setActiveDayToToday" href="#" class="btn btn-outline-secondary">Today</a>
+          </div>
+          <div class="col-6 col-md-7">
             <h3 class="float-right">Total: {{ dayWiseTotal }}</h3>
           </div>
         </div>
@@ -111,7 +114,10 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(expense, index) in activeExpenses">
+                  <tr v-if="activeExpenses.length === 0">
+                    <td class="text-center" colspan="4">No expenses, yet ;)</td>
+                  </tr>
+                  <tr v-else v-for="(expense, index) in activeExpenses">
                     <td>{{ expense.timestamp }}</td>
                     <td>{{ expense.why }}</td>
                     <td>{{ expense.amount }}</td>
@@ -130,7 +136,9 @@
 
           <div class="card">
             <div class="card-header">
-              Submit Expense
+              <span v-if="this.inEditMode">Edit</span>
+              <span v-else>Add</span>
+              Expense
             </div>
             <div class="card-body">
               <div class="row">
@@ -150,7 +158,10 @@
 
               <div class="row">
                 <div class="col-12">
-                  <button class="btn btn-primary btn-sm" type="button" @click="submitExpense">Submit</button>
+                  <button class="btn btn-primary btn-sm" type="button" @click="submitExpense">
+                    <span v-if="this.inEditMode">Edit</span>
+                    <span v-else>Add</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -356,6 +367,10 @@
 
           this.inEditMode = true;
           this.editingExpenseIndex = index;
+        },
+
+        setActiveDayToToday() {
+          this.activeDay = moment().format("YYYY-MM-DD");
         }
 
       }
