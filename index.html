@@ -45,6 +45,9 @@
         </div>
         <div class="col-6">
           <a data-toggle="collapse" href="#add-sheet-card" class="btn btn-primary float-right">New Sheet</a>
+          <span v-if="debug">
+            <button class="btn btn-danger" @click="initialize">Initialize</button>
+          </span>
         </div>
       </div>
 
@@ -255,6 +258,13 @@
         debugLog() {
           if (this.debug) {
             console.log.apply(this, arguments);
+          }
+        },
+
+        initialize() {
+          if (this.debug) {
+            localStorage.removeItem("state");
+            location.reload();
           }
         },
 
