@@ -293,16 +293,21 @@
             return;
           }
 
-          this.sheets.push({
+          var newSheet = {
             name: this.newSheetName,
             expenses: []
-          });
+          };
+
+          this.sheets.push(newSheet);
 
           this.newSheetName = "";
-
           this.persist();
 
           $("#add-sheet-card").collapse('hide');
+
+          if (this.sheets.length === 1) {
+            this.selectSheet(newSheet);
+          }
         },
 
         selectSheet(sheet) {
