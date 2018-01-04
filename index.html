@@ -90,8 +90,17 @@
           </div>
           <div class="col-6">
             <div class="float-right">
-              <!-- <a href="#" class="btn btn-sm btn-outline-secondary">Edit</a> -->
-              <a href="#" @click="dismissActiveSheet" class="btn btn-sm btn-outline-secondary">Dismiss</a>
+              <div class="btn-group">
+                <button @click="dismissActiveSheet" type="button" class="btn btn-outline-secondary btn-sm">Dismiss</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"
+                  aria-haspopup="true" aria-expanded="false">
+                  <span class="sr-only">Toggle Dropdown</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-right">
+                  <a @click="deleteActiveSheet" class="dropdown-item" href="#">Delete</a>
+                  <!--<a class="dropdown-item" href="#">Edit</a>-->
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -328,6 +337,13 @@
           this.expenseWhy = "";
           this.expenseAmt = 0.0;
           this.editingExpenseIndex = -1;
+
+          this.persist();
+        },
+
+        deleteActiveSheet() {
+          this.sheets = this.sheets.filter((s) => s.name !== this.activeSheet.name);
+          this.dismissActiveSheet();
 
           this.persist();
         },
