@@ -14,6 +14,10 @@
     [v-cloak] {
       display: none;
     }
+
+    .expense-row {
+      cursor: pointer;
+    }
   </style>
 
   <title>exp</title>
@@ -110,21 +114,16 @@
                     <th>When</th>
                     <th>Why</th>
                     <th>Amount</th>
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="activeExpenses.length === 0">
                     <td class="text-center" colspan="4">No expenses, yet ;)</td>
                   </tr>
-                  <tr v-else v-for="expense in activeExpenses">
-                    <td>{{ expense.timestamp }}</td>
+                  <tr class="expense-row" @click="editExpense(expense)" v-else v-for="expense in activeExpenses">
+                    <td>{{ expense.timestamp | timeonly }}</td>
                     <td>{{ expense.why }}</td>
                     <td>{{ expense.amount }}</td>
-                    <td>
-                      <a class="btn btn-secondary btn-sm" href="#" @click="editExpense(expense)">edit</a>
-                      <a class="btn btn-light btn-sm" href="#" @click="removeExpense(expense)">remove</a>
-                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -136,7 +135,7 @@
 
           <div class="card">
             <div class="card-header">
-              <span v-if="this.inEditMode">Edit</span>
+              <span v-if="inEditMode">Edit</span>
               <span v-else>Add</span>
               Expense
             </div>
@@ -157,11 +156,15 @@
               </div>
 
               <div class="row">
-                <div class="col-12">
+                <div class="col-6">
                   <button class="btn btn-primary btn-sm" type="button" @click="submitExpense">
                     <span v-if="this.inEditMode">Edit</span>
                     <span v-else>Add</span>
                   </button>
+                  <button class="btn btn-secondary btn-sm" @click="clearExpense">Cancel</button>
+                </div>
+                <div class="col-6">
+                  <button v-if="inEditMode" class="btn btn-outline-danger btn-sm float-right" @click="removeExpense">Remove</button>
                 </div>
               </div>
             </div>
@@ -171,8 +174,6 @@
       </div>
     </div>
   </div>
-
-
 
   <script src="https://cdn.jsdelivr.net/npm/vue"></script>
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.4/lodash.min.js"></script>
@@ -190,6 +191,11 @@
   <script>
     var app = new Vue({
       el: "#app",
+      filters: {
+        timeonly: function (value) {
+          return moment(value).format("h:mm:ss a");
+        }
+      },
       computed: {
         dayWiseTotal() {
           if (this.activeExpenses) {
@@ -231,23 +237,32 @@
         expenseWhy: "",
         inEditMode: false,
         activeDay: null,
-        editingExpenseIndex: -1
+        editingExpenseIndex: -1,
+        debug: false
       },
       mounted() {
         this.depersist();
-
-        setInterval(() => {
-          this.persist();
-        }, 5000);
       },
       methods: {
 
+        debugzzz() {
+          this.debug = !this.debug;
+          return this.debug;
+        },
+
+        debugLog() {
+          if (this.debug) {
+            console.log.apply(this, arguments);
+          }
+        },
+
         persist() {
+          this.debugLog("saving");
           localStorage.setItem("state", JSON.stringify(this.$data));
         },
 
         depersist() {
-          console.log("saving");
+          this.debugLog("restoring");
           var state = JSON.parse(localStorage.getItem("state"));
           if (state) {
             this.sheets = state.sheets;
@@ -257,6 +272,8 @@
         },
 
         addSheet() {
+
+          this.debugLog("addSheet", this.newSheetName);
 
           if (this.sheets.map((s) => s.name).indexOf(this.newSheetName) !== -1) {
             alert("This sheet already exists, can't add");
@@ -269,15 +286,19 @@
           });
 
           this.newSheetName = "";
-          this.newSheetDuration = 1;
 
           this.persist();
         },
 
         selectSheet(sheet) {
+
+          this.debugLog("selectSheet", sheet);
+
           this.dismissActiveSheet();
           this.activeSheet = sheet;
           this.activeDay = moment().format("YYYY-MM-DD");
+
+          this.persist();
         },
 
         dismissActiveSheet() {
@@ -287,6 +308,8 @@
           this.expenseWhy = "";
           this.expenseAmt = 0.0;
           this.editingExpenseIndex = -1;
+
+          this.persist();
         },
 
         submitExpense() {
@@ -295,36 +318,53 @@
             return;
           }
 
-          if (this.inEditMode) {
-            var expense = this.activeSheet.expenses[this.editingExpenseIndex];
-            expense.why = this.expenseWhy;
-            expense.amount = this.expenseAmt;
+          this.debugLog("submitExpense:inEditMode", this.inEditMode);
 
-            this.activeSheet.expenses.splice(this.editingExpenseIndex, 1, expense);
+          if (this.inEditMode) {
+            var existingExpense = this.activeSheet.expenses[this.editingExpenseIndex];
+
+            this.debugLog("submitExpense:OldExpense", existingExpense);
+            this.debugLog("submitExpense:NewDetails", this.expenseWhy, this.expenseAmt);
+
+            existingExpense.why = this.expenseWhy;
+            existingExpense.amount = this.expenseAmt;
+
+            this.activeSheet.expenses.splice(this.editingExpenseIndex, 1, existingExpense);
           }
           else {
             var nextIdx = this.activeSheet.expenses.length;
-            this.activeSheet.expenses.push({
+            var newExpense = {
               day: this.activeDay,
               timestamp: moment().format(),
               why: this.expenseWhy,
               amount: this.expenseAmt,
               idx: nextIdx
-            });
+            };
+
+            this.debugLog("submitExpense:NewExpense", newExpense);
+
+            this.activeSheet.expenses.push(newExpense);
           }
 
-          this.expenseAmt = 0.0;
-          this.expenseWhy = "";
-
-          this.inEditMode = false;
-          this.editingExpenseIndex = -1;
+          this.clearExpense();
 
           this.persist();
         },
 
-        removeExpense(expense) {
-          this.activeSheet.expenses.splice(expense.idx, 1);
+        removeExpense() {
+          var matchingExpenses = this.activeSheet.expenses.filter((e) => e.idx == this.editingExpenseIndex);
+
+          var expense = null;
+          if (matchingExpenses.length > 0) {
+            expense = matchingExpenses[0];
+          }
+
+          this.debugLog("removeExpense", expense);
+
+          this.activeSheet.expenses = this.activeSheet.expenses.filter((e) => e.idx !== expense.idx);
+
           this.persist();
+          this.clearExpense();
         },
 
         editExpense(expense) {
@@ -339,6 +379,16 @@
 
         setActiveDayToToday() {
           this.activeDay = moment().format("YYYY-MM-DD");
+          this.persist();
+        },
+
+        clearExpense() {
+          this.expenseAmt = 0.0;
+          this.expenseWhy = "";
+
+          this.inEditMode = false;
+          this.editingExpenseIndex = -1;
+          this.persist();
         }
 
       }
