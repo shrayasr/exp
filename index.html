@@ -73,15 +73,16 @@
         <hr/>
         <div class="row">
           <div class="col-6">
-            <h2 class="d-inline">{{ activeSheet.name }}</h2>
+            <h3 class="d-inline">{{ activeSheet.name }}</h3>
           </div>
           <div class="col-6">
-            <h3 class="float-right">Total: {{ grandTotal }}</h3>
+            <h4 class="float-right">
+              <span class="d-none d-md-inline">Total: </span>{{ grandTotal }}</h4>
           </div>
         </div>
         <div class="row">
           <div class="col-6">
-            <h4 class="text-muted">{{ sheetDuration }} day(s)</h4>
+            <h5 class="text-muted">{{ sheetDuration }} day(s)</h5>
           </div>
           <div class="col-6">
             <div class="float-right">
@@ -101,7 +102,8 @@
             <a @click="setActiveDayToToday" href="#" class="btn btn-outline-secondary">Today</a>
           </div>
           <div class="col-6 col-md-7">
-            <h3 class="float-right">Total: {{ dayWiseTotal }}</h3>
+            <h4 class="float-right">
+              <span class="d-none d-md-inline">Total: </span>{{ dayWiseTotal }}</h4>
           </div>
         </div>
 
