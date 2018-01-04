@@ -40,6 +40,7 @@
             </button>
             <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
               <a class="dropdown-item" v-for="sheet in sheets" href="#" @click="selectSheet(sheet)">{{ sheet.name }}</a>
+              <a class="dropdown-item" v-if="sheets.length === 0" data-toggle="collapse" href="#add-sheet-card">No sheets. Create one</a>
             </div>
           </div>
         </div>
